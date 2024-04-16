@@ -1,4 +1,2 @@
-# Ignore artifacts:
-build
-coverage
-commitlint.config.js
+node_modules
+package.json
