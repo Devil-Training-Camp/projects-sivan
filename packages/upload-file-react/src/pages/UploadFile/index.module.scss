@@ -1,0 +1,29 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .upload {
+        display: flex;
+        width: 100px;
+        height: 100px;
+        border: 1px dashed #ccc;
+        justify-content: center;
+        align-items: center;
+        border-radius: 8px;
+        transition: border-color 0.3s;
+        cursor: pointer;
+
+        &:hover {
+            border-color: #1677ff;
+        }
+    }
+
+    .operation {
+        margin-top: 20px;
+
+        .optItem {
+            margin: 0 10px;
+        }
+    }
+}
