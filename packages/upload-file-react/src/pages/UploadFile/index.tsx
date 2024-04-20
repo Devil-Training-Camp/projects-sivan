@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Upload, Button } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
+import { testApi } from "../../api/upload";
 import prettsize from "prettysize";
 import { splitFile } from "../../utils/file";
 import styles from "./index.module.scss";
@@ -18,7 +19,8 @@ const UploadFile = () => {
 
   const onChange = (info: UploadChangeParam) => {};
 
-  const onUpload = () => {
+  const onUpload = async () => {
+    await testApi();
     if (!file) return;
     const fileChunkList = splitFile(file);
     console.log(fileChunkList);
