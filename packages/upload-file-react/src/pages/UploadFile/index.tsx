@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Upload, Button } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
-import { testApi } from "../../api/upload";
+import { uploadChunks } from "../../api/upload";
 import prettsize from "prettysize";
 import { splitFile } from "../../utils/file";
 import styles from "./index.module.scss";
@@ -20,10 +20,9 @@ const UploadFile = () => {
   const onChange = (info: UploadChangeParam) => {};
 
   const onUpload = async () => {
-    await testApi();
     if (!file) return;
     const fileChunkList = splitFile(file);
-    console.log(fileChunkList);
+    await uploadChunks(fileChunkList);
   };
 
   const onDelete = () => setFile(null);
@@ -38,6 +37,12 @@ const UploadFile = () => {
       >
         选择文件
       </Upload>
+      {!file ? null : (
+        <div className={styles.fileInfo}>
+          <div className={styles.fileName}>文件名：{file.name}</div>
+          <div>文件大小：{fileSize}</div>
+        </div>
+      )}
       <div className={styles.operation}>
         <Button type="primary" className={styles.optItem} onClick={onUpload}>
           上传
@@ -52,7 +57,6 @@ const UploadFile = () => {
           删除
         </Button>
       </div>
-      {!file ? null : <div>文件大小为{fileSize}</div>}
     </div>
   );
 };

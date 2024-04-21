@@ -6,6 +6,8 @@ const routes = (router: Router) => {
   router.prefix("/api/v1");
   //
   router.get("/file/find", FileController.findSplice);
+  // 接收切片
+  router.post("/upload/chunk", FileController.uploadChunk);
 };
 
 export default routes;
