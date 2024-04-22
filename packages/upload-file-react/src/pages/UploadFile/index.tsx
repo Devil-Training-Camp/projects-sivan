@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Upload, Button } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
-import { uploadChunks } from "../../api/upload";
+import { uploadChunks, mergeChunks } from "../../api/upload";
 import prettsize from "prettysize";
 import { splitFile } from "../../utils/file";
 import styles from "./index.module.scss";
@@ -23,6 +23,8 @@ const UploadFile = () => {
     if (!file) return;
     const fileChunkList = splitFile(file);
     await uploadChunks(fileChunkList);
+    // 合并切片
+    await mergeChunks();
   };
 
   const onDelete = () => setFile(null);

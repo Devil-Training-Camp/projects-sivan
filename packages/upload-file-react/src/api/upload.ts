@@ -6,11 +6,6 @@ const instance = axios.create({
   timeout: 5 * 1000,
 });
 
-export const testApi = async () => {
-  const res = await instance.get("/file/find");
-  return res.data;
-};
-
 export const uploadChunks = async (fileChunkList: FilePiece[]) => {
   const requestList = fileChunkList.map((item, i) => {
     const formData = new FormData();
@@ -19,4 +14,8 @@ export const uploadChunks = async (fileChunkList: FilePiece[]) => {
     return instance.post("/upload/chunk", formData);
   });
   await Promise.all(requestList);
+};
+
+export const mergeChunks = async () => {
+  return instance.post("/merge/chunk");
 };
