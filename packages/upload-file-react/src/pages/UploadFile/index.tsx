@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { Upload, Button, Progress } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
-import { uploadChunks, mergeChunks } from "../../api/upload";
 import prettsize from "prettysize";
+import { uploadChunks, mergeChunks } from "../../api/upload";
 import { splitFile } from "../../utils/file";
+import { calHash } from "../../utils/hash";
 import styles from "./index.module.scss";
 
 const UploadFile = () => {
@@ -22,6 +23,8 @@ const UploadFile = () => {
   const onUpload = async () => {
     if (!file) return;
     const fileChunkList = splitFile(file);
+    // 计算hash值
+    const hash = await calHash(fileChunkList);
     await uploadChunks(fileChunkList);
     // 合并切片
     await mergeChunks();
