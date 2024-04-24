@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosProgressEvent } from "axios";
 import { FilePiece } from "../utils/file";
 
 const instance = axios.create({
@@ -11,7 +11,9 @@ export const uploadChunks = async (fileChunkList: FilePiece[]) => {
     const formData = new FormData();
     formData.append("chunk", item.chunk);
     formData.append("hash", i + "");
-    return instance.post("/upload/chunk", formData);
+    return instance.post("/upload/chunk", formData, {
+      onUploadProgress: (e: AxiosProgressEvent) => {},
+    });
   });
   await Promise.all(requestList);
 };

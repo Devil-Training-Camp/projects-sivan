@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Upload, Button } from "antd";
+import { Upload, Button, Progress } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
 import { uploadChunks, mergeChunks } from "../../api/upload";
 import prettsize from "prettysize";
@@ -58,6 +58,12 @@ const UploadFile = () => {
         >
           删除
         </Button>
+      </div>
+      <div className={styles.progress}>
+        <Progress percent={20} type="line" />
+        <Progress percent={20} type="line" />
+        <Progress percent={20} type="line" />
+        <Progress percent={20} type="line" />
       </div>
     </div>
   );
