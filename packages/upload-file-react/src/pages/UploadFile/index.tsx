@@ -1,14 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Upload, Button, Progress } from "antd";
-import type { UploadChangeParam } from "antd/es/upload";
+// import type { UploadChangeParam } from "antd/es/upload";
 import prettsize from "prettysize";
 import { uploadChunks, mergeChunks } from "../../api/upload";
 import { splitFile } from "../../utils/file";
-import { calHash } from "../../utils/hash";
+// import { calHash } from "../../utils/hash";
 import styles from "./index.module.scss";
 
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null);
+  // const [chunkList, setChunkList] = useState<File[]>();
+  const chunkListRef = useRef<{ chunk: Blob; hash: string; index: string }[]>(
+    [],
+  );
 
   const beforeUpload = (file: File) => {
     setFile(file);
@@ -18,16 +22,22 @@ const UploadFile = () => {
 
   const fileSize = useMemo(() => prettsize(file?.size), [file]);
 
-  const onChange = (info: UploadChangeParam) => {};
+  // const onChange = (info: UploadChangeParam) => {};
 
   const onUpload = async () => {
     if (!file) return;
+    // 生成切片
     const fileChunkList = splitFile(file);
-    // 计算hash值
-    const hash = await calHash(fileChunkList);
-    await uploadChunks(fileChunkList);
+    // 这里保存一下数据，后续上传进度可能需要用到
+    chunkListRef.current = fileChunkList.map((item, i) => ({
+      chunk: item.chunk,
+      hash: file.name + "-" + i,
+      index: String(i),
+    }));
+    // 上传切片
+    await uploadChunks(chunkListRef.current, file.name);
     // 合并切片
-    await mergeChunks();
+    await mergeChunks(file.name);
   };
 
   const onDelete = () => setFile(null);
@@ -37,7 +47,7 @@ const UploadFile = () => {
       <Upload
         showUploadList={false}
         beforeUpload={beforeUpload}
-        onChange={onChange}
+        // onChange={onChange}
         className={styles.upload}
       >
         选择文件
