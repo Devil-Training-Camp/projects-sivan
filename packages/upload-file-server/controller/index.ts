@@ -9,11 +9,11 @@ const SAVE_PATH = path.resolve(__dirname, "../node_modules/.cache");
 class FileController {
   // 上传切片
   static async uploadChunk(ctx: Context) {
-    const { hash, fileName, index } = ctx.request.body;
+    const { hash, index, fileHash } = ctx.request.body;
     // @ts-ignore
     const chunkFile = ctx.request.files?.chunk.filepath;
-    const fileDir = path.resolve(SAVE_PATH, fileName.split(".")[0]);
-    // 判断要写入文件的目录是否存在
+    const fileDir = path.resolve(SAVE_PATH, fileHash);
+    // 判断目录是否存在
     await mkdir(fileDir, { recursive: true });
     const readStream = createReadStream(chunkFile);
     const writeStream = createWriteStream(path.resolve(fileDir, index));
@@ -24,8 +24,8 @@ class FileController {
   }
   // 合并切片
   static async mergeChunk(ctx: Context) {
-    const { fileName } = ctx.request.body;
-    const fileDir = path.resolve(SAVE_PATH, fileName.split(".")[0]);
+    const { fileHash } = ctx.request.body;
+    const fileDir = path.resolve(SAVE_PATH, fileHash);
     // TODO 判断目录是否存在
     // 遍历目录
     const chunkFiles = await readdir(fileDir);

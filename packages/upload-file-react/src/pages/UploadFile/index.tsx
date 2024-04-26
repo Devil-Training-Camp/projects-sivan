@@ -1,18 +1,19 @@
 import { useState, useMemo, useRef } from "react";
-import { Upload, Button, Progress } from "antd";
+import { Upload, Button } from "antd";
 // import type { UploadChangeParam } from "antd/es/upload";
 import prettsize from "prettysize";
 import { uploadChunks, mergeChunks } from "../../api/upload";
 import { splitFile } from "../../utils/file";
-// import { calHash } from "../../utils/hash";
+import { calculateHash } from "../../utils/hash";
 import styles from "./index.module.scss";
 
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null);
   // const [chunkList, setChunkList] = useState<File[]>();
-  const chunkListRef = useRef<{ chunk: Blob; hash: string; index: string }[]>(
-    [],
-  );
+  const chunkListRef = useRef<
+    { chunk: Blob; hash: string; index: string; fileHash: string }[]
+  >([]);
+  const fileHashRef = useRef("");
 
   const beforeUpload = (file: File) => {
     setFile(file);
@@ -28,16 +29,19 @@ const UploadFile = () => {
     if (!file) return;
     // 生成切片
     const fileChunkList = splitFile(file);
+    // 生成文件hash值
+    fileHashRef.current = await calculateHash(fileChunkList);
     // 这里保存一下数据，后续上传进度可能需要用到
     chunkListRef.current = fileChunkList.map((item, i) => ({
       chunk: item.chunk,
       hash: file.name + "-" + i,
       index: String(i),
+      fileHash: fileHashRef.current,
     }));
     // 上传切片
-    await uploadChunks(chunkListRef.current, file.name);
+    await uploadChunks(chunkListRef.current);
     // 合并切片
-    await mergeChunks(file.name);
+    await mergeChunks(fileHashRef.current);
   };
 
   const onDelete = () => setFile(null);
@@ -72,12 +76,9 @@ const UploadFile = () => {
           删除
         </Button>
       </div>
-      <div className={styles.progress}>
+      {/* <div className={styles.progress}>
         <Progress percent={20} type="line" />
-        <Progress percent={20} type="line" />
-        <Progress percent={20} type="line" />
-        <Progress percent={20} type="line" />
-      </div>
+      </div> */}
     </div>
   );
 };
