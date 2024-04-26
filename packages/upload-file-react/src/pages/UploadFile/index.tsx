@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { Upload, Button } from "antd";
 // import type { UploadChangeParam } from "antd/es/upload";
 import prettsize from "prettysize";
-import { uploadChunks, mergeChunks } from "../../api/upload";
+import { uploadChunks, mergeChunks, verifyUpload } from "../../api/upload";
 import { splitFile } from "../../utils/file";
 import { calculateHash } from "../../utils/hash";
 import styles from "./index.module.scss";
@@ -31,6 +31,11 @@ const UploadFile = () => {
     const fileChunkList = splitFile(file);
     // 生成文件hash值
     fileHashRef.current = await calculateHash(fileChunkList);
+    // 查找文件是否存在
+    const { exist } = await verifyUpload(file.name, fileHashRef.current);
+    if (exist) {
+      return;
+    }
     // 这里保存一下数据，后续上传进度可能需要用到
     chunkListRef.current = fileChunkList.map((item, i) => ({
       chunk: item.chunk,
@@ -41,7 +46,7 @@ const UploadFile = () => {
     // 上传切片
     await uploadChunks(chunkListRef.current);
     // 合并切片
-    await mergeChunks(fileHashRef.current);
+    await mergeChunks(file.name, fileHashRef.current);
   };
 
   const onDelete = () => setFile(null);

@@ -1,5 +1,9 @@
 import axios from "axios";
-import { UPLOAD_CHUNK, MERGE_CHUNK } from "@sivan/upload-file-server/const";
+import {
+  UPLOAD_CHUNK,
+  MERGE_CHUNK,
+  VERIFY_UPLOAD,
+} from "@sivan/upload-file-server/const";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",
@@ -27,6 +31,14 @@ export const uploadChunks = async (
   await Promise.all(requestList);
 };
 
-export const mergeChunks = async (fileHash: string) => {
-  return instance.post(MERGE_CHUNK, { fileHash });
+export const mergeChunks = async (fileName: string, fileHash: string) => {
+  const res = await instance.post(MERGE_CHUNK, { fileName, fileHash });
+  return res.data;
+};
+
+export const verifyUpload = async (fileName: string, fileHash: string) => {
+  const res = await instance.get(VERIFY_UPLOAD, {
+    params: { fileName, fileHash },
+  });
+  return res.data.data;
 };

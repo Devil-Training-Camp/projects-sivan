@@ -1,6 +1,6 @@
 import type Router from "koa-router";
 import FileController from "../controller";
-import { UPLOAD_CHUNK, MERGE_CHUNK } from "../const";
+import { UPLOAD_CHUNK, MERGE_CHUNK, VERIFY_UPLOAD } from "../const";
 
 const routes = (router: Router) => {
   // 设置前缀
@@ -9,6 +9,8 @@ const routes = (router: Router) => {
   router.post(UPLOAD_CHUNK, FileController.uploadChunk);
   // 合并切片
   router.post(MERGE_CHUNK, FileController.mergeChunk);
+  // 验证上传
+  router.get(VERIFY_UPLOAD, FileController.verifyUpload);
 };
 
 export default routes;
