@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type GenericAbortSignal } from "axios";
 import {
   UPLOAD_CHUNK,
   MERGE_CHUNK,
@@ -17,6 +17,7 @@ export const uploadChunks = async (
     index: string;
     fileHash: string;
   }[],
+  signal: GenericAbortSignal,
 ) => {
   const requestList = fileChunkList
     .map((item) => {
@@ -27,7 +28,7 @@ export const uploadChunks = async (
       formData.append("fileHash", item.fileHash);
       return formData;
     })
-    .map((formData) => instance.post(UPLOAD_CHUNK, formData));
+    .map((formData) => instance.post(UPLOAD_CHUNK, formData, { signal }));
   await Promise.all(requestList);
 };
 

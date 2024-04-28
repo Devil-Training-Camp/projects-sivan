@@ -7,6 +7,9 @@ import { splitFile } from "../../utils/file";
 import { calculateHash } from "../../utils/hash";
 import styles from "./index.module.scss";
 
+const controller = new AbortController();
+const signal = controller.signal;
+
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null);
   // const [chunkList, setChunkList] = useState<File[]>();
@@ -14,6 +17,7 @@ const UploadFile = () => {
     { chunk: Blob; hash: string; index: string; fileHash: string }[]
   >([]);
   const fileHashRef = useRef("");
+  const [pause, setPause] = useState(false);
 
   const beforeUpload = (file: File) => {
     setFile(file);
@@ -44,12 +48,21 @@ const UploadFile = () => {
       fileHash: fileHashRef.current,
     }));
     // 上传切片
-    await uploadChunks(chunkListRef.current);
+    await uploadChunks(chunkListRef.current, signal);
     // 合并切片
     await mergeChunks(file.name, fileHashRef.current);
   };
 
   const onDelete = () => setFile(null);
+
+  const onPause = () => {
+    if (pause) {
+      console.log("续传");
+    } else {
+      controller.abort();
+    }
+    setPause(!pause);
+  };
 
   return (
     <div className={styles.container}>
@@ -71,7 +84,9 @@ const UploadFile = () => {
         <Button type="primary" className={styles.optItem} onClick={onUpload}>
           上传
         </Button>
-        <Button className={styles.optItem}>暂停</Button>
+        <Button className={styles.optItem} onClick={onPause}>
+          {pause ? "继续" : "暂停"}
+        </Button>
         <Button
           type="primary"
           danger
