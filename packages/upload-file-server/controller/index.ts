@@ -69,9 +69,13 @@ class FileController {
         data: { exist: true },
       };
     } else {
+      const chunkDir = path.resolve(SAVE_PATH, `${CHUNK_DIR}_${fileHash}`);
+      const uploadedChunks = existsSync(chunkDir)
+        ? await readdir(chunkDir)
+        : [];
       ctx.body = {
         code: 0,
-        data: { exist: false },
+        data: { exist: false, uploadedChunks },
       };
     }
   }

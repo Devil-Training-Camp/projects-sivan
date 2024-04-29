@@ -7,8 +7,7 @@ import { splitFile } from "../../utils/file";
 import { calculateHash } from "../../utils/hash";
 import styles from "./index.module.scss";
 
-const controller = new AbortController();
-const signal = controller.signal;
+let controller: AbortController | null = null;
 
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -47,6 +46,8 @@ const UploadFile = () => {
       index: String(i),
       fileHash: fileHashRef.current,
     }));
+    controller = new AbortController();
+    const signal = controller.signal;
     // 上传切片
     await uploadChunks(chunkListRef.current, signal);
     // 合并切片
@@ -55,13 +56,26 @@ const UploadFile = () => {
 
   const onDelete = () => setFile(null);
 
-  const onPause = () => {
-    if (pause) {
-      console.log("续传");
-    } else {
-      controller.abort();
-    }
+  const onPause = async () => {
     setPause(!pause);
+    if (pause) {
+      const { exist, uploadedChunks } = await verifyUpload(
+        file!.name,
+        fileHashRef.current,
+      );
+      if (exist) return;
+      controller = new AbortController();
+      const signal = controller.signal;
+      const filterList = chunkListRef.current.filter(
+        (item) => !uploadedChunks.includes(item.index),
+      );
+      // 上传切片（这里的signal不能传同一个实例）
+      await uploadChunks(filterList, signal);
+      // 合并切片
+      await mergeChunks(file!.name, fileHashRef.current);
+    } else {
+      controller?.abort();
+    }
   };
 
   return (
