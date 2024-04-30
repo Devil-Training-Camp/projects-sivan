@@ -14,7 +14,6 @@ export const uploadChunks = async (
   fileChunkList: {
     chunk: Blob;
     hash: string;
-    index: string;
     fileHash: string;
   }[],
   signal: GenericAbortSignal,
@@ -24,7 +23,6 @@ export const uploadChunks = async (
       const formData = new FormData();
       formData.append("chunk", item.chunk);
       formData.append("hash", item.hash);
-      formData.append("index", item.index);
       formData.append("fileHash", item.fileHash);
       return formData;
     })
@@ -32,8 +30,12 @@ export const uploadChunks = async (
   await Promise.all(requestList);
 };
 
-export const mergeChunks = async (fileName: string, fileHash: string) => {
-  const res = await instance.post(MERGE_CHUNK, { fileName, fileHash });
+export const mergeChunks = async (
+  fileName: string,
+  fileHash: string,
+  size: number,
+) => {
+  const res = await instance.post(MERGE_CHUNK, { fileName, fileHash, size });
   return res.data;
 };
 

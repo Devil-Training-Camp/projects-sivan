@@ -9,7 +9,6 @@ import {
 import path from "path";
 import { type Context } from "koa";
 import { pipeline } from "stream/promises";
-import { CHUNK_SIZE } from "../const";
 
 const SAVE_PATH = path.resolve(__dirname, "../node_modules/.cache");
 const CHUNK_DIR = "chunkDir";
@@ -17,14 +16,14 @@ const CHUNK_DIR = "chunkDir";
 class FileController {
   // 上传切片
   static async uploadChunk(ctx: Context) {
-    const { hash, index, fileHash } = ctx.request.body;
+    const { hash, fileHash } = ctx.request.body;
     // @ts-ignore
     const chunkFile = ctx.request.files?.chunk.filepath;
     const chunkDir = path.resolve(SAVE_PATH, `${CHUNK_DIR}_${fileHash}`);
     // 判断目录是否存在
     await mkdir(chunkDir, { recursive: true });
     const readStream = createReadStream(chunkFile);
-    const writeStream = createWriteStream(path.resolve(chunkDir, index));
+    const writeStream = createWriteStream(path.resolve(chunkDir, hash));
     readStream.pipe(writeStream);
     ctx.body = {
       code: 0,
@@ -32,7 +31,7 @@ class FileController {
   }
   // 合并切片
   static async mergeChunk(ctx: Context) {
-    const { fileName, fileHash } = ctx.request.body;
+    const { fileName, fileHash, size } = ctx.request.body;
     const chunkDir = path.resolve(SAVE_PATH, `${CHUNK_DIR}_${fileHash}`);
     const suffix = path.extname(fileName);
     // TODO 判断目录是否存在
@@ -46,7 +45,7 @@ class FileController {
         pipeline(
           createReadStream(path.resolve(chunkDir, chunkPath)),
           createWriteStream(path.resolve(SAVE_PATH, `${fileHash}${suffix}`), {
-            start: i * CHUNK_SIZE,
+            start: i * size,
           }),
         ),
       ),
@@ -70,12 +69,10 @@ class FileController {
       };
     } else {
       const chunkDir = path.resolve(SAVE_PATH, `${CHUNK_DIR}_${fileHash}`);
-      const uploadedChunks = existsSync(chunkDir)
-        ? await readdir(chunkDir)
-        : [];
+      const serverChunks = existsSync(chunkDir) ? await readdir(chunkDir) : [];
       ctx.body = {
         code: 0,
-        data: { exist: false, uploadedChunks },
+        data: { exist: false, serverChunks },
       };
     }
   }
