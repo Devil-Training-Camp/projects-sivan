@@ -1,9 +1,10 @@
-import axios, { type GenericAbortSignal } from "axios";
+import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
 import {
   UPLOAD_CHUNK,
   MERGE_CHUNK,
   VERIFY_UPLOAD,
 } from "@sivan/upload-file-server/const";
+import { type IChunk } from "../pages/UploadFile";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",
@@ -11,12 +12,10 @@ const instance = axios.create({
 });
 
 export const uploadChunks = async (
-  fileChunkList: {
-    chunk: Blob;
-    hash: string;
-    fileHash: string;
-  }[],
+  fileChunkList: IChunk[],
   signal: GenericAbortSignal,
+  createProgressHandler: (index: number) => (e: AxiosProgressEvent) => void,
+  finishCount: number = 0,
 ) => {
   const requestList = fileChunkList
     .map((item) => {
@@ -26,7 +25,13 @@ export const uploadChunks = async (
       formData.append("fileHash", item.fileHash);
       return formData;
     })
-    .map((formData) => instance.post(UPLOAD_CHUNK, formData, { signal }));
+    .map((formData, i) => {
+      const onUploadProgress = createProgressHandler(i + finishCount);
+      return instance.post(UPLOAD_CHUNK, formData, {
+        signal,
+        onUploadProgress,
+      });
+    });
   await Promise.all(requestList);
 };
 
