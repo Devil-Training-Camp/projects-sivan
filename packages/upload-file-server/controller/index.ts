@@ -24,6 +24,8 @@ class FileController {
     await mkdir(chunkDir, { recursive: true });
     const readStream = createReadStream(chunkFile);
     const writeStream = createWriteStream(path.resolve(chunkDir, hash));
+    // 这里有一个风险，stream 写出的过程是异步的，但你下面直接返回了 ctx.body
+    // 这会导致返回的时候文件还没有写完，可能会出错而接口没有正确返回错误信息，前端无感知
     readStream.pipe(writeStream);
     ctx.body = {
       code: 0,
@@ -42,6 +44,7 @@ class FileController {
     // 并发写入
     await Promise.all(
       chunkFiles.map((chunkPath, i) =>
+        // good job
         pipeline(
           createReadStream(path.resolve(chunkDir, chunkPath)),
           createWriteStream(path.resolve(SAVE_PATH, `${fileHash}${suffix}`), {
