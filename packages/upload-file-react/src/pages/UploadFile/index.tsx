@@ -126,6 +126,7 @@ const UploadFile = () => {
   return (
     <div className={styles.container}>
       {contextHolder}
+      {/* 需要支持上传多文件 */}
       <Upload
         showUploadList={false}
         beforeUpload={beforeUpload}
