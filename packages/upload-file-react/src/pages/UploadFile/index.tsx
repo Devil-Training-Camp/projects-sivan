@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Upload, Button, Progress, message } from "antd";
 import { type AxiosProgressEvent } from "axios";
 import prettsize from "prettysize";
@@ -19,18 +19,13 @@ export interface IChunk {
 }
 
 const UploadFile = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null); // 文件
+  const [hashProgress, setHashProgress] = useState(0); // hash计算进度
+  const hashRef = useRef(""); // 文件hash值
   const [chunkList, setChunkList] = useState<IChunk[]>([]);
-  const [fileHash, setFileHash] = useState("");
   const [pause, setPause] = useState(false);
   const [isExist, setIsExist] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-
-  const beforeUpload = (file: File) => {
-    setFile(file);
-    // 阻止默认上传
-    return false;
-  };
 
   const fileSize = useMemo(() => prettsize(file?.size), [file]);
 
@@ -56,15 +51,28 @@ const UploadFile = () => {
     };
   };
 
+  // 更新文件hash计算进度
+  const updateHashProgress = (progress: number) => setHashProgress(progress);
+
+  // 保存文件
+  const beforeUpload = (file: File) => {
+    setFile(file);
+    // 阻止默认上传
+    return false;
+  };
+
   const onUpload = async () => {
     if (!file) return;
     // 生成切片
     const fileChunkList = splitFile(file);
     // 生成文件hash值
-    const fHash = await calculateHash(fileChunkList);
-    setFileHash(fHash);
+    const fileHash = await calculateHash({
+      chunks: fileChunkList,
+      updateHashProgress,
+    });
+    hashRef.current = fileHash;
     // 查找文件是否存在
-    const { exist } = await verifyUpload(file.name, fHash);
+    const { exist } = await verifyUpload({ fileName: file.name, fileHash }); // TODO
     if (exist) {
       setIsExist(exist);
       success();
@@ -73,8 +81,8 @@ const UploadFile = () => {
     // 这里保存一下数据，后续上传进度可能需要用到
     const cList = fileChunkList.map((item, i) => ({
       chunk: item.chunk,
-      hash: fHash + "-" + i,
-      fileHash: fHash,
+      hash: fileHash + "-" + i,
+      fileHash: fileHash,
       progress: 0,
       index: i,
     }));
@@ -84,7 +92,7 @@ const UploadFile = () => {
     // 上传切片
     await uploadChunks(cList, signal, createProgressHandler);
     // 合并切片
-    await mergeChunks(file.name, fHash, CHUNK_SIZE);
+    await mergeChunks(file.name, fileHash, CHUNK_SIZE);
     success();
   };
 
@@ -94,21 +102,14 @@ const UploadFile = () => {
     setPause(!pause);
     if (pause) {
       // 这块没必要再判断 exist
-      const { serverChunks } = await verifyUpload(file!.name, fileHash);
+      const { serverChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
       controller = new AbortController();
       const signal = controller.signal;
-      const filterList = chunkList.filter(
-        (item) => !serverChunks?.includes(item.hash),
-      );
+      const filterList = chunkList.filter((item) => !serverChunks?.includes(item.hash));
       // 上传切片（这里的signal不能传同一个实例）
-      await uploadChunks(
-        filterList,
-        signal,
-        createProgressHandler,
-        serverChunks?.length,
-      );
+      await uploadChunks(filterList, signal, createProgressHandler, serverChunks?.length);
       // 合并切片
-      await mergeChunks(file!.name, fileHash, CHUNK_SIZE);
+      await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
       success();
     } else {
       controller?.abort();
@@ -117,20 +118,14 @@ const UploadFile = () => {
 
   const percent = useMemo(() => {
     if (!file || !chunkList.length) return 0;
-    const loaded = chunkList
-      .map((item) => item.progress * item.chunk.size)
-      .reduce((sum, next) => sum + next);
+    const loaded = chunkList.map((item) => item.progress * item.chunk.size).reduce((sum, next) => sum + next);
     return Number((loaded / file.size).toFixed(2));
   }, [file, chunkList]);
 
   return (
     <div className={styles.container}>
       {contextHolder}
-      <Upload
-        showUploadList={false}
-        beforeUpload={beforeUpload}
-        className={styles.upload}
-      >
+      <Upload showUploadList={false} beforeUpload={beforeUpload} className={styles.upload}>
         选择文件
       </Upload>
       {!file ? null : (
@@ -146,17 +141,19 @@ const UploadFile = () => {
         <Button className={styles.optItem} onClick={onPause}>
           {pause ? "继续" : "暂停"}
         </Button>
-        <Button
-          type="primary"
-          danger
-          className={styles.optItem}
-          onClick={onDelete}
-        >
+        <Button type="primary" danger className={styles.optItem} onClick={onDelete}>
           删除
         </Button>
       </div>
       <div className={styles.progress}>
-        <Progress percent={isExist ? 100 : percent} type="line" />
+        <div>
+          hash计算进度：
+          <Progress percent={hashProgress} type="line" />
+        </div>
+        <div>
+          文件上传进度：
+          <Progress percent={isExist ? 100 : percent} type="line" />
+        </div>
       </div>
     </div>
   );

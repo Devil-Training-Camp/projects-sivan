@@ -1,9 +1,5 @@
 import { CHUNK_SIZE } from "@/const";
-
-export interface FilePiece {
-  chunk: Blob;
-  size: number;
-}
+import { FilePiece } from "@/types";
 
 export const splitFile = (file: File, chunkSize = CHUNK_SIZE) => {
   const fileChunkList: FilePiece[] = [];

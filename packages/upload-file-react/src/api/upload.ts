@@ -1,8 +1,5 @@
-import {
-  UPLOAD_CHUNK,
-  MERGE_CHUNK,
-  VERIFY_UPLOAD,
-} from "@sivan/upload-file-server/const";
+import { UPLOAD_CHUNK, MERGE_CHUNK, VERIFY_UPLOAD } from "@sivan/upload-file-server/const";
+import type { VerifyUploadParams } from "@sivan/upload-file-server/types";
 import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
 import { type IChunk } from "@/pages/UploadFile";
 
@@ -35,18 +32,12 @@ export const uploadChunks = async (
   await Promise.all(requestList);
 };
 
-export const mergeChunks = async (
-  fileName: string,
-  fileHash: string,
-  size: number,
-) => {
+export const mergeChunks = async (fileName: string, fileHash: string, size: number) => {
   const res = await instance.post(MERGE_CHUNK, { fileName, fileHash, size });
   return res.data;
 };
 
-export const verifyUpload = async (fileName: string, fileHash: string) => {
-  const res = await instance.get(VERIFY_UPLOAD, {
-    params: { fileName, fileHash },
-  });
+export const verifyUpload = async (params: VerifyUploadParams) => {
+  const res = await instance.get(VERIFY_UPLOAD, { params });
   return res.data.data;
 };

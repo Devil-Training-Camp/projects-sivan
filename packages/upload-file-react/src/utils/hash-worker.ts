@@ -1,5 +1,5 @@
 import SparkMD5 from "spark-md5";
-import { type FilePiece } from "./file";
+import { FilePiece } from "@/types";
 
 const readChunk = (file: Blob): Promise<ArrayBuffer> => {
   return new Promise((resolve) => {
@@ -20,9 +20,14 @@ self.onmessage = async (e) => {
     const chunk = fileChunkList[i].chunk;
     const res = await readChunk(chunk);
     spark.append(res);
+    // 通知hash计算进度
+    self.postMessage({
+      progress: Number((((i + 1) / fileChunkList.length) * 100).toFixed(2)),
+    });
   }
   self.postMessage({
     hash: spark.end(), // 生成hash
+    progress: 100,
   });
   self.close();
 };
