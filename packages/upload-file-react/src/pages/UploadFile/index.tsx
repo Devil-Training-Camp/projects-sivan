@@ -12,8 +12,7 @@ let controller: AbortController | null = null;
 
 export interface IChunk {
   chunk: Blob;
-  hash: string;
-  fileHash: string;
+  chunkName: string;
   progress: number;
   index: number;
 }
@@ -21,8 +20,8 @@ export interface IChunk {
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null); // 文件
   const [hashProgress, setHashProgress] = useState(0); // hash计算进度
+  const [chunks, setChunks] = useState<IChunk[]>([]); // 切片列表
   const hashRef = useRef(""); // 文件hash值
-  const [chunkList, setChunkList] = useState<IChunk[]>([]);
   const [pause, setPause] = useState(false);
   const [isExist, setIsExist] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -39,7 +38,7 @@ const UploadFile = () => {
   // 创建chunk上传的progress监听函数
   const createProgressHandler = (index: number) => {
     return (e: AxiosProgressEvent) => {
-      setChunkList((prev) => {
+      setChunks((prev) => {
         // react无法监听到数组的变化，需要改变引用地址
         const newList = prev.concat([]);
         const chunk = newList.find((item) => item.index === index);
@@ -72,25 +71,25 @@ const UploadFile = () => {
     });
     hashRef.current = fileHash;
     // 查找文件是否存在
-    const { exist } = await verifyUpload({ fileName: file.name, fileHash }); // TODO
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { exist, cacheChunks } = await verifyUpload({ fileName: file.name, fileHash }); // TODO
     if (exist) {
       setIsExist(exist);
       success();
       return;
     }
     // 这里保存一下数据，后续上传进度可能需要用到
-    const cList = fileChunkList.map((item, i) => ({
+    const formatList = fileChunkList.map((item, i) => ({
       chunk: item.chunk,
-      hash: fileHash + "-" + i,
-      fileHash: fileHash,
+      chunkName: fileHash + "-" + i,
       progress: 0,
       index: i,
     }));
-    setChunkList(cList);
+    setChunks(formatList);
     controller = new AbortController();
     const signal = controller.signal;
     // 上传切片
-    await uploadChunks(cList, signal, createProgressHandler);
+    await uploadChunks(formatList, fileHash, signal, createProgressHandler);
     // 合并切片
     await mergeChunks(file.name, fileHash, CHUNK_SIZE);
     success();
@@ -102,12 +101,12 @@ const UploadFile = () => {
     setPause(!pause);
     if (pause) {
       // 这块没必要再判断 exist
-      const { serverChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
+      const { cacheChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
       controller = new AbortController();
       const signal = controller.signal;
-      const filterList = chunkList.filter((item) => !serverChunks?.includes(item.hash));
+      const filterList = chunks.filter((item) => !cacheChunks?.includes(item.chunkName));
       // 上传切片（这里的signal不能传同一个实例）
-      await uploadChunks(filterList, signal, createProgressHandler, serverChunks?.length);
+      await uploadChunks(filterList, hashRef.current, signal, createProgressHandler, cacheChunks?.length);
       // 合并切片
       await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
       success();
@@ -117,10 +116,10 @@ const UploadFile = () => {
   };
 
   const percent = useMemo(() => {
-    if (!file || !chunkList.length) return 0;
-    const loaded = chunkList.map((item) => item.progress * item.chunk.size).reduce((sum, next) => sum + next);
+    if (!file || !chunks.length) return 0;
+    const loaded = chunks.map((item) => item.progress * item.chunk.size).reduce((sum, next) => sum + next);
     return Number((loaded / file.size).toFixed(2));
-  }, [file, chunkList]);
+  }, [file, chunks]);
 
   return (
     <div className={styles.container}>

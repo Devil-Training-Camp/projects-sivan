@@ -1,4 +1,4 @@
-import { mkdir, readdir, createReadStream, createWriteStream, rm, existsSync } from "fs-extra";
+import { mkdir, writeFile, readdir, createReadStream, createWriteStream, rm, existsSync } from "fs-extra";
 import { type Context } from "koa";
 import path from "path";
 import { pipeline } from "stream/promises";
@@ -7,15 +7,14 @@ import { getFilePath, getChunkPath } from "../utils";
 class FileController {
   // 上传切片
   static async uploadChunk(ctx: Context) {
-    const { hash, fileHash } = ctx.request.body;
+    const { chunkName, fileHash } = ctx.request.body;
     // @ts-ignore
-    const chunkFile = ctx.request.files?.chunk.filepath;
+    const chunkFile = ctx.request.files?.chunk?.filepath;
+    // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
     const chunkPath = getChunkPath(fileHash);
     // 判断目录是否存在
     await mkdir(chunkPath, { recursive: true });
-    const readStream = createReadStream(chunkFile);
-    const writeStream = createWriteStream(path.resolve(chunkPath, hash));
-    readStream.pipe(writeStream);
+    await writeFile(path.resolve(chunkPath, chunkName), chunkFile);
     ctx.body = {
       code: 0,
     };
@@ -51,6 +50,7 @@ class FileController {
   static async verifyUpload(ctx: Context) {
     const { fileName, fileHash } = ctx.request.query as { fileName: string; fileHash: string };
     const filePath = getFilePath(fileName, fileHash);
+    // 判断文件是否存在
     if (existsSync(filePath)) {
       ctx.body = {
         code: 0,
@@ -58,10 +58,11 @@ class FileController {
       };
     } else {
       const chunkPath = getChunkPath(fileHash);
-      const serverChunks = existsSync(chunkPath) ? await readdir(chunkPath) : [];
+      // 获取已上传切片
+      const cacheChunks = existsSync(chunkPath) ? await readdir(chunkPath) : [];
       ctx.body = {
         code: 0,
-        data: { exist: false, serverChunks },
+        data: { exist: false, cacheChunks },
       };
     }
   }

@@ -10,6 +10,7 @@ const instance = axios.create({
 
 export const uploadChunks = async (
   fileChunkList: IChunk[],
+  fileHash: string,
   signal: GenericAbortSignal,
   createProgressHandler: (index: number) => (e: AxiosProgressEvent) => void,
   finishCount: number = 0,
@@ -18,8 +19,8 @@ export const uploadChunks = async (
     .map((item) => {
       const formData = new FormData();
       formData.append("chunk", item.chunk);
-      formData.append("hash", item.hash);
-      formData.append("fileHash", item.fileHash);
+      formData.append("chunkName", item.chunkName);
+      formData.append("fileHash", fileHash);
       return formData;
     })
     .map((formData, i) => {
