@@ -91,8 +91,8 @@ const UploadFile = () => {
     // 上传切片
     await uploadChunks(formatList, fileHash, signal, createProgressHandler);
     // 合并切片
-    await mergeChunks(file.name, fileHash, CHUNK_SIZE);
-    success();
+    // await mergeChunks(file.name, fileHash, CHUNK_SIZE);
+    // success();
   };
 
   const onDelete = () => setFile(null);

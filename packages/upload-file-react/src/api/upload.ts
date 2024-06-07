@@ -2,6 +2,7 @@ import { UPLOAD_CHUNK, MERGE_CHUNK, VERIFY_UPLOAD } from "@sivan/upload-file-ser
 import type { VerifyUploadParams } from "@sivan/upload-file-server/types";
 import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
 import { type IChunk } from "@/pages/UploadFile";
+import TaskQueue from "@/utils/concurrent";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",
@@ -15,22 +16,20 @@ export const uploadChunks = async (
   createProgressHandler: (index: number) => (e: AxiosProgressEvent) => void,
   finishCount: number = 0,
 ) => {
-  const requestList = fileChunkList
-    .map((item) => {
-      const formData = new FormData();
-      formData.append("chunk", item.chunk);
-      formData.append("chunkName", item.chunkName);
-      formData.append("fileHash", fileHash);
-      return formData;
-    })
-    .map((formData, i) => {
-      const onUploadProgress = createProgressHandler(i + finishCount);
-      return instance.post(UPLOAD_CHUNK, formData, {
-        signal,
-        onUploadProgress,
-      });
-    });
-  await Promise.all(requestList);
+  const taskQueue = new TaskQueue(3);
+  for (let i = 0; i < fileChunkList.length; i++) {
+    const fileChunk = fileChunkList[i];
+    const formData = new FormData();
+    formData.append("chunk", fileChunk.chunk);
+    formData.append("chunkName", fileChunk.chunkName);
+    formData.append("fileHash", fileHash);
+    const onUploadProgress = createProgressHandler(i + finishCount);
+    // 并发控制
+    const task = async () => {
+      await instance.post(UPLOAD_CHUNK, formData, { signal, onUploadProgress });
+    };
+    taskQueue.enqueue(task);
+  }
 };
 
 export const mergeChunks = async (fileName: string, fileHash: string, size: number) => {
