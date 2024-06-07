@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { Upload, Button, Progress, message } from "antd";
-import prettsize from "prettysize";
 import { type AxiosProgressEvent } from "axios";
-import { uploadChunks, mergeChunks, verifyUpload } from "../../api/upload";
-import { splitFile } from "../../utils/file";
-import { calculateHash } from "../../utils/hash";
-import { CHUNK_SIZE } from "../../const";
+import prettsize from "prettysize";
+import { uploadChunks, mergeChunks, verifyUpload } from "@/api/upload";
+import { CHUNK_SIZE } from "@/const";
+import { splitFile } from "@/utils/file";
+import { calculateHash } from "@/utils/hash";
 import styles from "./index.module.scss";
 
 let controller: AbortController | null = null;

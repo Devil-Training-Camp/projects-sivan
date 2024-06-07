@@ -1,6 +1,6 @@
 import type Router from "koa-router";
-import FileController from "../controller";
 import { UPLOAD_CHUNK, MERGE_CHUNK, VERIFY_UPLOAD } from "../const";
+import FileController from "../controller";
 
 const routes = (router: Router) => {
   // 设置前缀

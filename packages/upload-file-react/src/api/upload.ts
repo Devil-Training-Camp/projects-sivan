@@ -1,10 +1,10 @@
-import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
 import {
   UPLOAD_CHUNK,
   MERGE_CHUNK,
   VERIFY_UPLOAD,
 } from "@sivan/upload-file-server/const";
-import { type IChunk } from "../pages/UploadFile";
+import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
+import { type IChunk } from "@/pages/UploadFile";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",

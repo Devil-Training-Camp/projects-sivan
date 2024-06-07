@@ -1,4 +1,4 @@
-import { CHUNK_SIZE } from "../const";
+import { CHUNK_SIZE } from "@/const";
 
 export interface FilePiece {
   chunk: Blob;

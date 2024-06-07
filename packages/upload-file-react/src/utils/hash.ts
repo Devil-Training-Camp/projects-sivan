@@ -1,5 +1,5 @@
-import Worker from "./hash-worker.ts?worker";
 import { type FilePiece } from "./file";
+import Worker from "./hash-worker.ts?worker";
 
 export const calculateHash = (chunks: FilePiece[]): Promise<string> => {
   return new Promise((resolve) => {

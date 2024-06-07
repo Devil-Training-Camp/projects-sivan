@@ -1,4 +1,4 @@
-import UploadFile from "./pages/UploadFile";
+import UploadFile from "@/pages/UploadFile";
 import "./App.css";
 
 function App() {

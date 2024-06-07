@@ -1,9 +1,9 @@
 import Koa from "koa";
-import Router from "koa-router";
-import json from "koa-json";
-import { koaBody } from "koa-body";
 import cors from "koa2-cors";
+import { koaBody } from "koa-body";
+import json from "koa-json";
 import logger from "koa-logger";
+import Router from "koa-router";
 import config from "./config";
 import routes from "./routes";
 
