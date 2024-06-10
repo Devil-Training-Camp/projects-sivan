@@ -14,9 +14,9 @@ export const uploadChunks = async (
   fileHash: string,
   signal: GenericAbortSignal,
   createProgressHandler: (index: number) => (e: AxiosProgressEvent) => void,
+  taskQueue: TaskQueue,
   finishCount: number = 0,
 ) => {
-  const taskQueue = new TaskQueue(3);
   for (let i = 0; i < fileChunkList.length; i++) {
     const fileChunk = fileChunkList[i];
     const formData = new FormData();

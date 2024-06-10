@@ -4,6 +4,7 @@ import { type AxiosProgressEvent } from "axios";
 import prettsize from "prettysize";
 import { uploadChunks, mergeChunks, verifyUpload } from "@/api/upload";
 import { CHUNK_SIZE } from "@/const";
+import TaskQueue from "@/utils/concurrent";
 import { splitFile } from "@/utils/file";
 import { calculateHash } from "@/utils/hash";
 import styles from "./index.module.scss";
@@ -88,11 +89,17 @@ const UploadFile = () => {
     setChunks(formatList);
     controller = new AbortController();
     const signal = controller.signal;
+    // 创建taskQueue实例，并发控制
+    const taskQueue = new TaskQueue(3);
     // 上传切片
-    await uploadChunks(formatList, fileHash, signal, createProgressHandler);
-    // 合并切片
-    // await mergeChunks(file.name, fileHash, CHUNK_SIZE);
-    // success();
+    await uploadChunks(formatList, fileHash, signal, createProgressHandler, taskQueue);
+    // 成功上传切片数，判断切片是否全部上传
+    const uploadedCount = await taskQueue.waitForAllTasks();
+    if (uploadedCount === formatList.length) {
+      // 合并切片
+      await mergeChunks(file.name, fileHash, CHUNK_SIZE);
+      success();
+    }
   };
 
   const onDelete = () => setFile(null);

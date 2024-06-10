@@ -1,10 +1,13 @@
 type TaskFunction = () => Promise<void>;
+type CallbackFunction = (successfulTasks: number) => void;
 
 class TaskQueue {
   private maxConcurrent: number; // 最大并发数
   private pendingTasks: { task: TaskFunction; retries: number }[] = [];
   private runningCount = 0;
   private maxRetries = 2; // 最大重试次数
+  private successfulTasks = 0; // 成功执行任务数
+  private allTasksCompletedCallback?: CallbackFunction;
 
   constructor(maxConcurrent: number) {
     if (maxConcurrent <= 0) {
@@ -24,6 +27,7 @@ class TaskQueue {
       this.runningCount++;
       try {
         await task();
+        this.successfulTasks++;
       } catch (error) {
         if (retries < this.maxRetries) {
           // 重新入队重试
@@ -34,6 +38,20 @@ class TaskQueue {
         this.runTask();
       }
     }
+    // 检查是否所有的任务都执行完成
+    if (this.runningCount === 0 && this.pendingTasks.length === 0 && this.allTasksCompletedCallback) {
+      this.allTasksCompletedCallback(this.successfulTasks);
+    }
+  }
+
+  private onAllTasksCompleted(callback: CallbackFunction) {
+    this.allTasksCompletedCallback = callback;
+  }
+
+  async waitForAllTasks() {
+    return new Promise<number>((resolve) => {
+      this.onAllTasksCompleted(resolve);
+    });
   }
 }
 
