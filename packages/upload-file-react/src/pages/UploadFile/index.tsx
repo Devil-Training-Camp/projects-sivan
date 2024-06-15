@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo } from "react";
 import { Upload, Button, Progress, message } from "antd";
+import type { ProgressProps } from "antd";
 import { type AxiosProgressEvent } from "axios";
 import prettsize from "prettysize";
 import { uploadChunks, mergeChunks, verifyUpload } from "@/api/upload";
-import { CHUNK_SIZE } from "@/const";
+import { CHUNK_SIZE, UPLOAD_SUCCESS } from "@/const";
 import TaskQueue from "@/utils/concurrent";
 import { splitFile } from "@/utils/file";
 import { calculateHash } from "@/utils/hash";
@@ -23,16 +24,24 @@ const UploadFile = () => {
   const [hashProgress, setHashProgress] = useState(0); // hash计算进度
   const [chunks, setChunks] = useState<IChunk[]>([]); // 切片列表
   const hashRef = useRef(""); // 文件hash值
+  const [fileProgressStatus, setFileProgressStatus] = useState<ProgressProps["status"]>("normal"); // 文件上传进度条 status
   const [pause, setPause] = useState(false);
   const [isExist, setIsExist] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   const fileSize = useMemo(() => prettsize(file?.size), [file]);
 
-  const success = () => {
+  const successMessage = (content = UPLOAD_SUCCESS) => {
     messageApi.open({
       type: "success",
-      content: "上传成功",
+      content,
+    });
+  };
+
+  const errorMessage = (content: string) => {
+    messageApi.open({
+      type: "error",
+      content,
     });
   };
 
@@ -76,7 +85,8 @@ const UploadFile = () => {
     const { exist, cacheChunks } = await verifyUpload({ fileName: file.name, fileHash }); // TODO
     if (exist) {
       setIsExist(exist);
-      success();
+      successMessage();
+      setFileProgressStatus("success");
       return;
     }
     // 这里保存一下数据，后续上传进度可能需要用到
@@ -87,6 +97,7 @@ const UploadFile = () => {
       index: i,
     }));
     setChunks(formatList);
+    // TODO 想办法控制一下这个取消的实例
     controller = new AbortController();
     const signal = controller.signal;
     // 创建taskQueue实例，并发控制
@@ -97,8 +108,14 @@ const UploadFile = () => {
     const uploadedCount = await taskQueue.waitForAllTasks();
     if (uploadedCount === formatList.length) {
       // 合并切片
-      await mergeChunks(file.name, fileHash, CHUNK_SIZE);
-      success();
+      const mergeRes = await mergeChunks(file.name, fileHash, CHUNK_SIZE);
+      if (mergeRes.code === 0) {
+        successMessage();
+        setFileProgressStatus("success");
+      } else {
+        errorMessage(mergeRes.data?.msg);
+        setFileProgressStatus("exception");
+      }
     }
   };
 
@@ -116,7 +133,7 @@ const UploadFile = () => {
       await uploadChunks(filterList, hashRef.current, signal, createProgressHandler, cacheChunks?.length);
       // 合并切片
       await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
-      success();
+      successMessage();
     } else {
       controller?.abort();
     }
@@ -158,7 +175,7 @@ const UploadFile = () => {
         </div>
         <div>
           文件上传进度：
-          <Progress percent={isExist ? 100 : percent} type="line" />
+          <Progress percent={isExist ? 100 : percent} type="line" status={fileProgressStatus} />
         </div>
       </div>
     </div>
