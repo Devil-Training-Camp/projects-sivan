@@ -25,13 +25,14 @@ const UploadFile = () => {
   const [chunks, setChunks] = useState<IChunk[]>([]); // 切片列表
   const hashRef = useRef(""); // 文件hash值
   const [fileProgressStatus, setFileProgressStatus] = useState<ProgressProps["status"]>("normal"); // 文件上传进度条 status
-  const [pause, setPause] = useState(false);
-  const [isExist, setIsExist] = useState(false);
+  const [pause, setPause] = useState(false); // 暂停
+  const [isExist, setIsExist] = useState(false); // 文件是否已存在，判断秒传
   const [messageApi, contextHolder] = message.useMessage();
 
   const fileSize = useMemo(() => prettsize(file?.size), [file]);
 
   const successMessage = (content = UPLOAD_SUCCESS) => {
+    messageApi.destroy();
     messageApi.open({
       type: "success",
       content,
@@ -39,8 +40,25 @@ const UploadFile = () => {
   };
 
   const errorMessage = (content: string) => {
+    messageApi.destroy();
     messageApi.open({
       type: "error",
+      content,
+    });
+  };
+
+  const warningMessage = (content: string) => {
+    messageApi.destroy();
+    messageApi.open({
+      type: "warning",
+      content,
+    });
+  };
+
+  const infoMessage = (content: string) => {
+    messageApi.destroy();
+    messageApi.open({
+      type: "info",
       content,
     });
   };
@@ -70,6 +88,8 @@ const UploadFile = () => {
     return false;
   };
 
+  // const doUpload = async () => {};
+
   const onUpload = async () => {
     if (!file) return;
     // 生成切片
@@ -93,20 +113,22 @@ const UploadFile = () => {
     const formatList = fileChunkList.map((item, i) => ({
       chunk: item.chunk,
       chunkName: fileHash + "-" + i,
-      progress: 0,
+      progress: cacheChunks?.includes(fileHash + "-" + i) ? 100 : 0,
       index: i,
     }));
     setChunks(formatList);
+    // 过滤已上传切片
+    const filterList = formatList.filter((item) => !cacheChunks?.includes(item.chunkName));
     // TODO 想办法控制一下这个取消的实例
     controller = new AbortController();
     const signal = controller.signal;
     // 创建taskQueue实例，并发控制
     const taskQueue = new TaskQueue(3);
     // 上传切片
-    await uploadChunks(formatList, fileHash, signal, createProgressHandler, taskQueue);
+    await uploadChunks(filterList, fileHash, signal, createProgressHandler, taskQueue, cacheChunks?.length);
     // 成功上传切片数，判断切片是否全部上传
     const uploadedCount = await taskQueue.waitForAllTasks();
-    if (uploadedCount === formatList.length) {
+    if (uploadedCount === filterList.length) {
       // 合并切片
       const mergeRes = await mergeChunks(file.name, fileHash, CHUNK_SIZE);
       if (mergeRes.code === 0) {
@@ -122,18 +144,47 @@ const UploadFile = () => {
   const onDelete = () => setFile(null);
 
   const onPause = async () => {
+    if (!file) {
+      warningMessage("请选择文件");
+      return;
+    }
+    if (!hashRef.current) {
+      warningMessage("请上传文件");
+      return;
+    }
+    if (isExist) {
+      infoMessage("文件已存在");
+      return;
+    }
     setPause(!pause);
     if (pause) {
-      // 这块没必要再判断 exist
-      const { cacheChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
+      const { exist, cacheChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
+      if (exist) {
+        setIsExist(true);
+        infoMessage("文件已存在");
+        return;
+      }
+      // 过滤已上传切片
+      const filterList = chunks.filter((item) => !cacheChunks?.includes(item.chunkName));
       controller = new AbortController();
       const signal = controller.signal;
-      const filterList = chunks.filter((item) => !cacheChunks?.includes(item.chunkName));
+      // 创建taskQueue实例，并发控制
+      const taskQueue = new TaskQueue(3);
       // 上传切片（这里的signal不能传同一个实例）
-      await uploadChunks(filterList, hashRef.current, signal, createProgressHandler, cacheChunks?.length);
-      // 合并切片
-      await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
-      successMessage();
+      await uploadChunks(filterList, hashRef.current, signal, createProgressHandler, taskQueue, cacheChunks?.length);
+      // 成功上传切片数，判断切片是否全部上传
+      const uploadedCount = await taskQueue.waitForAllTasks();
+      if (uploadedCount === filterList.length) {
+        // 合并切片
+        const mergeRes = await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
+        if (mergeRes.code === 0) {
+          successMessage();
+          setFileProgressStatus("success");
+        } else {
+          errorMessage(mergeRes.data?.msg);
+          setFileProgressStatus("exception");
+        }
+      }
     } else {
       controller?.abort();
     }

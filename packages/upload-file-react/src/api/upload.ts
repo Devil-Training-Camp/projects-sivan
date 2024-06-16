@@ -38,6 +38,6 @@ export const mergeChunks = async (fileName: string, fileHash: string, size: numb
 };
 
 export const verifyUpload = async (params: VerifyUploadParams) => {
-  const res = await instance.get(VERIFY_UPLOAD, { params });
+  const res = await instance.get<{ code: number; data: { exist: boolean; cacheChunks: string[] } }>(VERIFY_UPLOAD, { params });
   return res.data.data;
 };
