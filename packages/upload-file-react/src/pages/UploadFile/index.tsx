@@ -92,7 +92,7 @@ const UploadFile = () => {
     });
     hashRef.current = fileHash;
     // 查找文件是否存在
-    const { exist, cacheChunks } = await verifyUpload({ fileName: file.name, fileHash });
+    const { exist, cacheChunks } = await verifyUpload(file.name, fileHash);
     if (exist) {
       setIsExist(exist);
       messageOpen("上传成功", "success");
@@ -130,7 +130,7 @@ const UploadFile = () => {
     }
     setPause(!pause);
     if (pause) {
-      const { exist, cacheChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
+      const { exist, cacheChunks } = await verifyUpload(file!.name, hashRef.current);
       if (exist) {
         setIsExist(true);
         messageOpen("文件已存在", "info");
