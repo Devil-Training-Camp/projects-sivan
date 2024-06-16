@@ -1,7 +1,7 @@
 import { UPLOAD_CHUNK, MERGE_CHUNK, VERIFY_UPLOAD } from "@sivan/upload-file-server/const";
 import type { VerifyUploadParams } from "@sivan/upload-file-server/types";
 import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
-import { type IChunk } from "@/pages/UploadFile";
+import { IChunk } from "@/types";
 import TaskQueue from "@/utils/concurrent";
 
 const instance = axios.create({

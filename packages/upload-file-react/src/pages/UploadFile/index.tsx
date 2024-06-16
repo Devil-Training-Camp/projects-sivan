@@ -1,23 +1,18 @@
 import { useState, useRef, useMemo } from "react";
+import { NoticeType } from "antd/es/message/interface";
 import { Upload, Button, Progress, message } from "antd";
 import type { ProgressProps } from "antd";
 import { type AxiosProgressEvent } from "axios";
 import prettsize from "prettysize";
 import { uploadChunks, mergeChunks, verifyUpload } from "@/api/upload";
-import { CHUNK_SIZE, UPLOAD_SUCCESS } from "@/const";
+import { CHUNK_SIZE } from "@/const";
+import { IChunk } from "@/types";
 import TaskQueue from "@/utils/concurrent";
 import { splitFile } from "@/utils/file";
 import { calculateHash } from "@/utils/hash";
 import styles from "./index.module.scss";
 
 let controller: AbortController | null = null;
-
-export interface IChunk {
-  chunk: Blob;
-  chunkName: string;
-  progress: number;
-  index: number;
-}
 
 const UploadFile = () => {
   const [file, setFile] = useState<File | null>(null); // 文件
@@ -31,34 +26,10 @@ const UploadFile = () => {
 
   const fileSize = useMemo(() => prettsize(file?.size), [file]);
 
-  const successMessage = (content = UPLOAD_SUCCESS) => {
+  const messageOpen = (content: string, type?: NoticeType) => {
     messageApi.destroy();
     messageApi.open({
-      type: "success",
-      content,
-    });
-  };
-
-  const errorMessage = (content: string) => {
-    messageApi.destroy();
-    messageApi.open({
-      type: "error",
-      content,
-    });
-  };
-
-  const warningMessage = (content: string) => {
-    messageApi.destroy();
-    messageApi.open({
-      type: "warning",
-      content,
-    });
-  };
-
-  const infoMessage = (content: string) => {
-    messageApi.destroy();
-    messageApi.open({
-      type: "info",
+      type,
       content,
     });
   };
@@ -88,7 +59,27 @@ const UploadFile = () => {
     return false;
   };
 
-  // const doUpload = async () => {};
+  const doUpload = async (chunkList: IChunk[], fileHash: string, cacheCount: number) => {
+    controller = new AbortController();
+    const signal = controller.signal;
+    // 创建taskQueue实例，并发控制
+    const taskQueue = new TaskQueue(3);
+    // 上传切片（这里的signal不能传同一个实例）
+    await uploadChunks(chunkList, fileHash, signal, createProgressHandler, taskQueue, cacheCount);
+    // 成功上传切片数，判断切片是否全部上传
+    const uploadedCount = await taskQueue.waitForAllTasks();
+    if (uploadedCount === chunkList.length) {
+      // 合并切片
+      const mergeRes = await mergeChunks(file!.name, fileHash, CHUNK_SIZE);
+      if (mergeRes.code === 0) {
+        messageOpen("上传成功", "success");
+        setFileProgressStatus("success");
+      } else {
+        messageOpen(mergeRes.data?.msg, "error");
+        setFileProgressStatus("exception");
+      }
+    }
+  };
 
   const onUpload = async () => {
     if (!file) return;
@@ -101,11 +92,10 @@ const UploadFile = () => {
     });
     hashRef.current = fileHash;
     // 查找文件是否存在
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { exist, cacheChunks } = await verifyUpload({ fileName: file.name, fileHash }); // TODO
+    const { exist, cacheChunks } = await verifyUpload({ fileName: file.name, fileHash });
     if (exist) {
       setIsExist(exist);
-      successMessage();
+      messageOpen("上传成功", "success");
       setFileProgressStatus("success");
       return;
     }
@@ -119,41 +109,23 @@ const UploadFile = () => {
     setChunks(formatList);
     // 过滤已上传切片
     const filterList = formatList.filter((item) => !cacheChunks?.includes(item.chunkName));
-    // TODO 想办法控制一下这个取消的实例
-    controller = new AbortController();
-    const signal = controller.signal;
-    // 创建taskQueue实例，并发控制
-    const taskQueue = new TaskQueue(3);
-    // 上传切片
-    await uploadChunks(filterList, fileHash, signal, createProgressHandler, taskQueue, cacheChunks?.length);
-    // 成功上传切片数，判断切片是否全部上传
-    const uploadedCount = await taskQueue.waitForAllTasks();
-    if (uploadedCount === filterList.length) {
-      // 合并切片
-      const mergeRes = await mergeChunks(file.name, fileHash, CHUNK_SIZE);
-      if (mergeRes.code === 0) {
-        successMessage();
-        setFileProgressStatus("success");
-      } else {
-        errorMessage(mergeRes.data?.msg);
-        setFileProgressStatus("exception");
-      }
-    }
+    // 上传
+    doUpload(filterList, fileHash, cacheChunks?.length);
   };
 
   const onDelete = () => setFile(null);
 
   const onPause = async () => {
     if (!file) {
-      warningMessage("请选择文件");
+      messageOpen("请选择文件", "warning");
       return;
     }
     if (!hashRef.current) {
-      warningMessage("请上传文件");
+      messageOpen("请上传文件", "warning");
       return;
     }
     if (isExist) {
-      infoMessage("文件已存在");
+      messageOpen("文件已存在", "info");
       return;
     }
     setPause(!pause);
@@ -161,30 +133,13 @@ const UploadFile = () => {
       const { exist, cacheChunks } = await verifyUpload({ fileName: file!.name, fileHash: hashRef.current });
       if (exist) {
         setIsExist(true);
-        infoMessage("文件已存在");
+        messageOpen("文件已存在", "info");
         return;
       }
       // 过滤已上传切片
       const filterList = chunks.filter((item) => !cacheChunks?.includes(item.chunkName));
-      controller = new AbortController();
-      const signal = controller.signal;
-      // 创建taskQueue实例，并发控制
-      const taskQueue = new TaskQueue(3);
-      // 上传切片（这里的signal不能传同一个实例）
-      await uploadChunks(filterList, hashRef.current, signal, createProgressHandler, taskQueue, cacheChunks?.length);
-      // 成功上传切片数，判断切片是否全部上传
-      const uploadedCount = await taskQueue.waitForAllTasks();
-      if (uploadedCount === filterList.length) {
-        // 合并切片
-        const mergeRes = await mergeChunks(file!.name, hashRef.current, CHUNK_SIZE);
-        if (mergeRes.code === 0) {
-          successMessage();
-          setFileProgressStatus("success");
-        } else {
-          errorMessage(mergeRes.data?.msg);
-          setFileProgressStatus("exception");
-        }
-      }
+      // 上传
+      doUpload(filterList, hashRef.current, cacheChunks?.length);
     } else {
       controller?.abort();
     }
