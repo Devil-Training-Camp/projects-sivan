@@ -6,6 +6,7 @@
     "start": "node -r sucrase/register app.ts"
   },
   "dependencies": {
+    // 其实用 node 原生的 `fs/promises` 模块应该就能满足需求了吧
     "fs-extra": "^11.2.0",
     "koa": "^2.3.0",
     "koa-body": "^6.0.1",

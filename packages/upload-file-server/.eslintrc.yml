@@ -1,6 +1,8 @@
 env:
   es6: true
   node: true
+  # 不要用 yml 格式，太不好维护了
+  # 改成 cjs 格式吧
   browser: false
 extends: 'eslint:recommended'
 installedESLint: true

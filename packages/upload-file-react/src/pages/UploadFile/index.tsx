@@ -15,6 +15,7 @@ import styles from "./index.module.scss";
 let controller: AbortController | null = null;
 
 const UploadFile = () => {
+  // 状态也太多了。。。
   const [file, setFile] = useState<File | null>(null); // 文件
   const [hashProgress, setHashProgress] = useState(0); // hash计算进度
   const [chunks, setChunks] = useState<IChunk[]>([]); // 切片列表
@@ -67,7 +68,10 @@ const UploadFile = () => {
     // 上传切片（这里的signal不能传同一个实例）
     await uploadChunks(chunkList, fileHash, signal, createProgressHandler, taskQueue, cacheCount);
     // 成功上传切片数，判断切片是否全部上传
+    // 这个地方，chunk => uploadChunks 后，uploadChunks 生产了 taskQueue 
+    // 然后又在外层 await taskQueue，信息穿来穿去的，非常不内聚
     const uploadedCount = await taskQueue.waitForAllTasks();
+    // 如果不等于的时候呢？怎么处理？
     if (uploadedCount === chunkList.length) {
       // 合并切片
       const mergeRes = await mergeChunks(file!.name, fileHash, CHUNK_SIZE);
@@ -154,6 +158,7 @@ const UploadFile = () => {
   return (
     <div className={styles.container}>
       {contextHolder}
+      {/* 需要支持多文件上传 */}
       <Upload showUploadList={false} beforeUpload={beforeUpload} className={styles.upload}>
         选择文件
       </Upload>
