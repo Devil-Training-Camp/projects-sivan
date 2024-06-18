@@ -32,8 +32,10 @@ class FileController {
       // 切片排序，直接读取目录获取的顺序可能错乱
       chunkFiles.sort((a, b) => Number(a.split("-")[1]) - Number(b.split("-")[1]));
       // 并发写入
+      // 不错，并发写入
       await Promise.all(
         chunkFiles.map((chunkName, i) =>
+          // 这个 pipeline 的调用我倒是挺喜欢的，不错
           pipeline(
             createReadStream(path.resolve(chunkPath, chunkName)),
             createWriteStream(filePath, {
@@ -43,6 +45,7 @@ class FileController {
         ),
       );
       // 递归删除切片和目录，目录不存在则忽略
+      // 为什么同步和异步方法混用的？
       rmSync(chunkPath, { recursive: true, force: true });
       ctx.body = {
         code: 0,

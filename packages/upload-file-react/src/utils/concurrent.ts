@@ -35,6 +35,9 @@ class TaskQueue {
         }
       } finally {
         this.runningCount--;
+        // 这里看起来应该没有起到并发执行的效果
+        // 因为上面 await 了，这里等前面 task 执行完才会执行下一个
+        // 这是比较严重的 bug，请重视
         this.runTask();
       }
     }

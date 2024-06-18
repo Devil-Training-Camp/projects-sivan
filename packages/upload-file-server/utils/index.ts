@@ -20,6 +20,7 @@ export const getSuffix = (fileName: string) => path.extname(fileName);
  * @returns
  */
 export const getFileName = (fileHash: string, suffix: string) => {
+  // 额，这段 path.resolve 的调用有什么作用呢？
   path.resolve(__dirname, `${fileHash}${suffix}`);
   return `${fileHash}${suffix}`;
 };
