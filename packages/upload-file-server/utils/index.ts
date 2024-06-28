@@ -19,10 +19,7 @@ export const getSuffix = (fileName: string) => path.extname(fileName);
  * @param suffix 文件后缀
  * @returns
  */
-export const getFileName = (fileHash: string, suffix: string) => {
-  path.resolve(__dirname, `${fileHash}${suffix}`);
-  return `${fileHash}${suffix}`;
-};
+export const getFileName = (fileHash: string, suffix: string) => `${fileHash}${suffix}`;
 
 /**
  * 获取文件路径
@@ -39,6 +36,4 @@ export const getFilePath = (fileName: string, fileHash: string) => {
  * @param fileHash 文件hash值
  * @returns
  */
-export const getChunkPath = (fileHash: string) => {
-  return path.resolve(FILE_SAVE_PATH, `${CHUNK_DIR_PREFIX}${fileHash}`);
-};
+export const getChunkPath = (fileHash: string) => path.resolve(FILE_SAVE_PATH, `${CHUNK_DIR_PREFIX}${fileHash}`);

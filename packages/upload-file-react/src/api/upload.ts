@@ -5,7 +5,7 @@ import TaskQueue from "@/utils/concurrent";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",
-  timeout: 5 * 1000,
+  timeout: 60 * 1000,
 });
 
 export const uploadChunks = async (

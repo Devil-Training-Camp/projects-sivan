@@ -1,4 +1,5 @@
-import { mkdir, writeFile, readdir, createReadStream, createWriteStream, rmSync, existsSync } from "fs-extra";
+import { existsSync, createReadStream, createWriteStream } from "fs";
+import { mkdir, writeFile, readdir, rm } from "fs/promises";
 import { type Context } from "koa";
 import path from "path";
 import { pipeline } from "stream/promises";
@@ -43,7 +44,7 @@ class FileController {
         ),
       );
       // 递归删除切片和目录，目录不存在则忽略
-      rmSync(chunkPath, { recursive: true, force: true });
+      await rm(chunkPath, { recursive: true, force: true });
       ctx.body = {
         code: 0,
         data: {

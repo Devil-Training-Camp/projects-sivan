@@ -21,22 +21,24 @@ class TaskQueue {
     this.runTask();
   }
 
-  private async runTask() {
-    if (this.runningCount < this.maxConcurrent && this.pendingTasks.length > 0) {
+  private runTask() {
+    while (this.runningCount < this.maxConcurrent && this.pendingTasks.length > 0) {
       const { task, retries } = this.pendingTasks.shift()!;
       this.runningCount++;
-      try {
-        await task();
-        this.successfulTasks++;
-      } catch (error) {
-        if (retries < this.maxRetries) {
-          // 重新入队重试
-          this.pendingTasks.push({ task, retries: retries + 1 });
-        }
-      } finally {
-        this.runningCount--;
-        this.runTask();
-      }
+      task()
+        .then(() => {
+          this.successfulTasks++;
+        })
+        .catch(() => {
+          if (retries < this.maxRetries) {
+            // 重新入队重试
+            this.pendingTasks.push({ task, retries: retries + 1 });
+          }
+        })
+        .finally(() => {
+          this.runningCount--;
+          this.runTask();
+        });
     }
     // 检查是否所有的任务都执行完成
     if (this.runningCount === 0 && this.pendingTasks.length === 0 && this.allTasksCompletedCallback) {
