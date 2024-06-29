@@ -4,7 +4,7 @@ import { Button, Progress, message } from "antd";
 import type { ProgressProps } from "antd";
 import { type AxiosProgressEvent } from "axios";
 import prettsize from "prettysize";
-import { uploadChunks, mergeChunks, verifyUpload } from "@/api/upload";
+import { uploadChunk, mergeChunks, verifyUpload } from "@/api/upload";
 import { CHUNK_SIZE } from "@/const";
 import { IChunk } from "@/types";
 import TaskQueue from "@/utils/concurrent";
@@ -62,8 +62,11 @@ const FileItem = (props: IProps) => {
     const signal = controller.signal;
     // 创建taskQueue实例，并发控制
     const taskQueue = new TaskQueue(3);
-    // 上传切片（这里的signal不能传同一个实例）
-    await uploadChunks(chunkList, fileHash, signal, createProgressHandler, taskQueue, cacheCount);
+    for (let i = 0; i < chunkList.length; i++) {
+      const onUploadProgress = createProgressHandler(i + cacheCount);
+      // 上传切片（这里的signal不能传同一个实例）
+      taskQueue.enqueue(uploadChunk(chunkList[i], fileHash, signal, onUploadProgress));
+    }
     // 成功上传切片数，判断切片是否全部上传
     const uploadedCount = await taskQueue.waitForAllTasks();
     if (uploadedCount === chunkList.length) {
@@ -76,6 +79,9 @@ const FileItem = (props: IProps) => {
         messageOpen(mergeRes.data?.msg, "error");
         setFileProgressStatus("exception");
       }
+    } else {
+      messageOpen("部分切片上传失败，请重新上传", "error");
+      setFileProgressStatus("exception");
     }
   };
 

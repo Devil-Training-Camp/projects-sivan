@@ -1,4 +1,4 @@
-type TaskFunction = () => Promise<void>;
+type TaskFunction = () => Promise<any>;
 type CallbackFunction = (successfulTasks: number) => void;
 
 class TaskQueue {
