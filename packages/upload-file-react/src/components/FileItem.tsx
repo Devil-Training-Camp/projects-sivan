@@ -151,6 +151,12 @@ const FileItem = (props: IProps) => {
         messageOpen("文件已存在", "info");
         return;
       }
+      // 更新上传进度，防止暂停后重新上传进度条不满
+      const newList = chunks.map((item, i) => ({
+        ...item,
+        progress: cacheChunks?.includes(hashRef.current + "-" + i) ? 100 : 0,
+      }));
+      setChunks(newList);
       // 过滤已上传切片
       const filterList = chunks.filter((item) => !cacheChunks?.includes(item.chunkName));
       // 上传
