@@ -3,12 +3,13 @@ import { mkdir, writeFile, readdir, rm } from "fs/promises";
 import { type Context } from "koa";
 import path from "path";
 import { pipeline } from "stream/promises";
+import { IUploadChunkParams, IMergeChunksParams, IVerifyUploadParams } from "../types";
 import { getFilePath, getChunkPath } from "../utils";
 
 class FileController {
   // 上传切片
   static async uploadChunk(ctx: Context) {
-    const { chunkName, fileHash } = ctx.request.body;
+    const { chunkName, fileHash } = ctx.request.body as Omit<IUploadChunkParams, "chunk">;
     // @ts-ignore
     const chunkFile = ctx.request.files?.chunk?.filepath;
     // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
@@ -22,7 +23,7 @@ class FileController {
   }
   // 合并切片
   static async mergeChunk(ctx: Context) {
-    const { fileName, fileHash, size } = ctx.request.body;
+    const { fileName, fileHash, size } = ctx.request.body as IMergeChunksParams;
     // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
     const chunkPath = getChunkPath(fileHash);
     // 判断目录是否存在
@@ -62,7 +63,7 @@ class FileController {
   }
   // 验证上传
   static async verifyUpload(ctx: Context) {
-    const { fileName, fileHash } = ctx.request.query as { fileName: string; fileHash: string };
+    const { fileName, fileHash } = ctx.request.query as unknown as IVerifyUploadParams;
     // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
     const filePath = getFilePath(fileName, fileHash);
     // 判断文件是否存在

@@ -26,6 +26,7 @@ const FileItem = (props: IProps) => {
   const hashRef = useRef(""); // 文件hash值
   const [fileProgressStatus, setFileProgressStatus] = useState<ProgressProps["status"]>("normal"); // 文件上传进度条 status
   const [pause, setPause] = useState(false); // 暂停
+  const pauseRef = useRef(pause); // 保存pause最新状态
   const [isExist, setIsExist] = useState(false); // 文件是否已存在，判断秒传
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -64,14 +65,16 @@ const FileItem = (props: IProps) => {
     const taskQueue = new TaskQueue(3);
     for (let i = 0; i < chunkList.length; i++) {
       const onUploadProgress = createProgressHandler(i + cacheCount);
+      const uploadParams = { chunk: chunkList[i].chunk, chunkName: chunkList[i].chunkName, fileHash, signal, onUploadProgress };
       // 上传切片（这里的signal不能传同一个实例）
-      taskQueue.enqueue(uploadChunk(chunkList[i], fileHash, signal, onUploadProgress));
+      taskQueue.enqueue(uploadChunk(uploadParams));
     }
     // 成功上传切片数，判断切片是否全部上传
     const uploadedCount = await taskQueue.waitForAllTasks();
     if (uploadedCount === chunkList.length) {
+      const mergeParams = { fileName: file.name, fileHash, size: CHUNK_SIZE };
       // 合并切片
-      const mergeRes = await mergeChunks(file!.name, fileHash, CHUNK_SIZE);
+      const mergeRes = await mergeChunks(mergeParams);
       if (mergeRes.code === 0) {
         messageOpen("上传成功", "success");
         setFileProgressStatus("success");
@@ -80,8 +83,10 @@ const FileItem = (props: IProps) => {
         setFileProgressStatus("exception");
       }
     } else {
-      messageOpen("部分切片上传失败，请重新上传", "error");
-      setFileProgressStatus("exception");
+      if (!pauseRef.current) {
+        messageOpen("部分切片上传失败，请重新上传", "error");
+        setFileProgressStatus("exception");
+      }
     }
   };
 
@@ -95,8 +100,9 @@ const FileItem = (props: IProps) => {
       updateHashProgress,
     });
     hashRef.current = fileHash;
+    const verifyParams = { fileName: file.name, fileHash };
     // 查找文件是否存在
-    const { exist, cacheChunks } = await verifyUpload(file.name, fileHash);
+    const { exist, cacheChunks } = await verifyUpload(verifyParams);
     if (exist) {
       setIsExist(exist);
       messageOpen("上传成功", "success");
@@ -132,9 +138,14 @@ const FileItem = (props: IProps) => {
       messageOpen("文件已存在", "info");
       return;
     }
-    setPause(!pause);
+    setPause((prev) => {
+      const newPause = !prev;
+      pauseRef.current = newPause; // 更新pauseRef的值
+      return newPause;
+    });
     if (pause) {
-      const { exist, cacheChunks } = await verifyUpload(file!.name, hashRef.current);
+      const verifyParams = { fileName: file.name, fileHash: hashRef.current };
+      const { exist, cacheChunks } = await verifyUpload(verifyParams);
       if (exist) {
         setIsExist(true);
         messageOpen("文件已存在", "info");
@@ -146,6 +157,7 @@ const FileItem = (props: IProps) => {
       doUpload(filterList, hashRef.current, cacheChunks?.length);
     } else {
       controller?.abort();
+      messageOpen("暂停上传", "info");
     }
   };
 
