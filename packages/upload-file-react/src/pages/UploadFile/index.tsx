@@ -9,6 +9,7 @@ const UploadFile = () => {
   const beforeUpload = (_: File, fileList: File[]) => {
     const newList = [...filesList];
     fileList.forEach((file) => {
+      // 哈？通过 name 和 size 来判断？
       const isRepeat = filesList.some((item) => item.name === file.name && item.size === file.size);
       if (!isRepeat) {
         newList.push(file);
