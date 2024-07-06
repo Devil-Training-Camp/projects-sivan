@@ -1,3 +1,4 @@
+// existsSync 也可以改成 异步
 import { existsSync, createReadStream, createWriteStream } from "fs";
 import { mkdir, writeFile, readdir, rm } from "fs/promises";
 import { type Context } from "koa";
