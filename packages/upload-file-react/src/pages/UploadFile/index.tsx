@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RcFile } from "antd/es/upload";
 import { Upload } from "antd";
 import FileItem from "@/components/FileItem";
 import styles from "./index.module.scss";
@@ -6,10 +7,10 @@ import styles from "./index.module.scss";
 const UploadFile = () => {
   const [filesList, setFilesList] = useState<File[]>([]); // 文件列表
 
-  const beforeUpload = (_: File, fileList: File[]) => {
+  const beforeUpload = (_: RcFile, fileList: RcFile[]) => {
     const newList = [...filesList];
     fileList.forEach((file) => {
-      const isRepeat = filesList.some((item) => item.name === file.name && item.size === file.size);
+      const isRepeat = (filesList as RcFile[]).some((item) => item.uid === file.uid);
       if (!isRepeat) {
         newList.push(file);
       }

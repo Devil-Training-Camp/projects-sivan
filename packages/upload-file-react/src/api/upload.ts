@@ -4,10 +4,10 @@ import axios, { type GenericAbortSignal, type AxiosProgressEvent } from "axios";
 
 const instance = axios.create({
   baseURL: "http://localhost:3000/api/v1",
-  timeout: 60 * 1000,
+  timeout: 15 * 60 * 1000, // 大文件设置请求超时 15 分钟
 });
 
-export const uploadChunk = (
+export const uploadChunk = async (
   params: IUploadChunkParams & { signal?: GenericAbortSignal; onUploadProgress?: (e: AxiosProgressEvent) => void },
 ) => {
   const { chunk, chunkName, fileHash, signal, onUploadProgress } = params;
@@ -15,7 +15,7 @@ export const uploadChunk = (
   formData.append("chunk", chunk);
   formData.append("chunkName", chunkName);
   formData.append("fileHash", fileHash);
-  return async () => await instance.post(UPLOAD_CHUNK, formData, { signal, onUploadProgress });
+  await instance.post(UPLOAD_CHUNK, formData, { signal, onUploadProgress });
 };
 
 export const mergeChunks = async (params: IMergeChunksParams) => {

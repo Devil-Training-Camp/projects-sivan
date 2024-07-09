@@ -1,10 +1,10 @@
-import { existsSync, createReadStream, createWriteStream } from "fs";
+import { createReadStream, createWriteStream } from "fs";
 import { mkdir, writeFile, readdir, rm } from "fs/promises";
 import { type Context } from "koa";
 import path from "path";
 import { pipeline } from "stream/promises";
 import { IUploadChunkParams, IMergeChunksParams, IVerifyUploadParams } from "../types";
-import { getFilePath, getChunkPath } from "../utils";
+import { getFilePath, getChunkPath, isDirExists, isFileExists } from "../utils";
 
 class FileController {
   // 上传切片
@@ -27,7 +27,7 @@ class FileController {
     // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
     const chunkPath = getChunkPath(fileHash);
     // 判断目录是否存在
-    if (existsSync(chunkPath)) {
+    if (await isDirExists(chunkPath)) {
       const filePath = getFilePath(fileName, fileHash);
       // 遍历目录
       const chunkFiles = await readdir(chunkPath);
@@ -67,7 +67,7 @@ class FileController {
     // TODO 这里需要对参数进行检查，防止为 undefined 导致报错
     const filePath = getFilePath(fileName, fileHash);
     // 判断文件是否存在
-    if (existsSync(filePath)) {
+    if (await isFileExists(filePath)) {
       ctx.body = {
         code: 0,
         data: { exist: true },
@@ -75,7 +75,7 @@ class FileController {
     } else {
       const chunkPath = getChunkPath(fileHash);
       // 获取已上传切片
-      const cacheChunks = existsSync(chunkPath) ? await readdir(chunkPath) : [];
+      const cacheChunks = (await isDirExists(chunkPath)) ? await readdir(chunkPath) : [];
       ctx.body = {
         code: 0,
         data: { exist: false, cacheChunks },

@@ -1,3 +1,4 @@
+import { stat } from "fs/promises";
 import path from "path";
 import { CHUNK_DIR_PREFIX } from "../const";
 
@@ -37,3 +38,31 @@ export const getFilePath = (fileName: string, fileHash: string) => {
  * @returns
  */
 export const getChunkPath = (fileHash: string) => path.resolve(FILE_SAVE_PATH, `${CHUNK_DIR_PREFIX}${fileHash}`);
+
+/**
+ * 判断文件目录是否存在
+ * @param filename
+ * @returns
+ */
+export const isDirExists = async (filename: string) => {
+  try {
+    const fStat = await stat(filename);
+    return fStat.isDirectory();
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * 判断文件是否存在
+ * @param filename
+ * @returns
+ */
+export const isFileExists = async (filename: string) => {
+  try {
+    const fStat = await stat(filename);
+    return fStat.isFile();
+  } catch (e) {
+    return false;
+  }
+};
