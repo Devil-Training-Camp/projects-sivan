@@ -67,7 +67,8 @@ const FileItem = (props: IProps) => {
       const onUploadProgress = createProgressHandler(i + cacheCount);
       const uploadParams = { chunk: chunkList[i].chunk, chunkName: chunkList[i].chunkName, fileHash, signal, onUploadProgress };
       // 上传切片（这里的signal不能传同一个实例）
-      taskQueue.enqueue(uploadChunk(uploadParams));
+      // 这里得传一个未执行的Promise，否则macOS下上传进度条统计有问题
+      taskQueue.enqueue(() => uploadChunk(uploadParams));
     }
     // 成功上传切片数，判断切片是否全部上传
     const uploadedCount = await taskQueue.waitForAllTasks();

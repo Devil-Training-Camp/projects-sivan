@@ -1,4 +1,4 @@
-type TaskType = Promise<void>;
+type TaskType = () => Promise<void>;
 type CallbackFunction = (successfulTasks: number) => void;
 
 class TaskQueue {
@@ -25,7 +25,7 @@ class TaskQueue {
     while (this.runningCount < this.maxConcurrent && this.pendingTasks.length > 0) {
       const { task, retries } = this.pendingTasks.shift()!;
       this.runningCount++;
-      task
+      task()
         .then(() => {
           this.successfulTasks++;
         })
