@@ -1,0 +1,29 @@
+{
+  "name": "dep-ana-cli",
+  "version": "0.1.0",
+  "main": "index.js",
+  "bin": {
+    "dep-ana-cli": "bin/run"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.12.7",
+    "babel-eslint": "7.1.1",
+    "eslint": "3.18.0",
+    "sucrase": "^3.35.0",
+    "typescript": "^5.2.2"
+  }
+}
