@@ -1,5 +1,8 @@
 import { existsNonEmptyWantedLockfile, readWantedLockfile, type Lockfile } from "@pnpm/lockfile-file";
+import { type ProjectId, type DepPath } from "@pnpm/types";
 import path from "path";
+import { IDepGraph } from "../types";
+import { parseImporters, parsePackages } from "../utils";
 import { BaseDepGraph } from "./base";
 
 export class PnpmLockGraph extends BaseDepGraph {
@@ -29,36 +32,34 @@ export class PnpmLockGraph extends BaseDepGraph {
     this.pnpmLock = pnpmLock;
   }
 
-  async parse(): Promise<any> {
+  async parse(): Promise<IDepGraph[]> {
     await this.load();
     const { importers, packages } = this.pnpmLock!;
-    const graph: any[] = [];
+    const graph: IDepGraph[] = [];
     // monorepo内部依赖
     if (importers) {
-      /* const [
-        importerName,
-        { dependencies = {}, devDependencies = {} }
-      ] of Object.entries(importers) */
-      // console.log(importers);
-      // console.log(Object.keys(importers));
-      // const {importerName,{dependencies={},devDependencies={}}} = Object.entries(importers)[1][1]
-      // console.log(Object.entries(importers)[1]);
-      const [importerName, { dependencies = {}, devDependencies = {} }] = Object.entries(importers)[2];
-      for (const [depName] of Object.entries({
-        ...dependencies,
-        ...devDependencies,
-      })) {
-        graph.push({
-          source: importerName, // 依赖源
-          target: depName, // 依赖目标
-        });
-        console.log("importerName", importerName);
-        console.log("depName", depName);
-        // nodeSet.add(depName) // 添加依赖节点
-      }
+      const keys = Object.keys(importers);
+      const modules = keys.map((key) => {
+        return {
+          dependencies: parseImporters(importers[key as ProjectId]),
+          name: key,
+        };
+      });
+      graph.push(...modules);
     }
     // 第三方依赖
     if (packages) {
+      const keys = Object.keys(packages);
+      const modules = keys.map((key) => {
+        const REGEXP = /^([\w\@\/\-\d\.]+)@([\d\w\.\-]+)/;
+        const match = key.match(REGEXP) || [];
+        return {
+          dependencies: parsePackages(packages[key as DepPath]),
+          name: match[1],
+        };
+      });
+      graph.push(...modules);
     }
+    return graph;
   }
 }
