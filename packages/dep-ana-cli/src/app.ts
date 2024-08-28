@@ -11,6 +11,8 @@ import { IDepGraph } from "./types";
 export const startServer = (deps: IDepGraph[]) => {
   const app = new Koa();
   const router = new Router();
+  // 设置前缀
+  router.prefix("/api/v1");
 
   const port = process.env.PORT || serverPort;
 
@@ -29,8 +31,13 @@ export const startServer = (deps: IDepGraph[]) => {
     console.log(`${ctx.method} ${ctx.url} - $ms`);
   });
 
-  router.get("/", async (ctx: Context, next: Next) => {
-    ctx.body = deps;
+  router.get("/deps", async (ctx: Context, next: Next) => {
+    ctx.body = {
+      code: 0,
+      data: {
+        deps,
+      },
+    };
   });
 
   // 监听报错
@@ -39,7 +46,7 @@ export const startServer = (deps: IDepGraph[]) => {
   });
 
   app.listen(port, () => {
-    open(`http://localhost:${port}`);
+    // open(`http://localhost:${port}`);
     console.log(`Listening on http://localhost:${port}`);
   });
 };

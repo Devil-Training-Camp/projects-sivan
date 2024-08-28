@@ -4,9 +4,7 @@
   "description": "",
   "private": true,
   "type": "module",
-  "scripts": {
-    "prepare": "husky install"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",

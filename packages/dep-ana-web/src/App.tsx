@@ -1,9 +1,10 @@
+import DepChart from "@/pages/DepChart";
 import "./App.css";
 
 function App() {
   return (
     <>
-      <div>你好</div>
+      <DepChart />
     </>
   );
 }
