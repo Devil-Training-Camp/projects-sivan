@@ -1,16 +1,43 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import * as d3 from "d3";
 import { getDepData } from "@/api";
-import { data } from "@/data";
+// import { data } from "@/data";
 import styles from "./index.module.scss";
 
 const DepChart = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulation = useRef<d3.Simulation<d3.SimulationNodeDatum, undefined> | null>(null);
+  const [data, setData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
+
   useEffect(() => {
     getDepData().then((res) => {
-      console.log(res);
+      const temp = res.deps;
+      const nodes: any[] = [];
+      const links: any[] = [];
+      temp.forEach((item: any) => {
+        const { dependencies, name } = item;
+        const nodeId = name;
+        if (nodes.findIndex((r) => r.id === nodeId) < 0) {
+          nodes.push({
+            id: nodeId,
+            group: dependencies.length,
+          });
+        }
+        dependencies.forEach((item: any) => {
+          const linkId = item.name;
+          nodes.push({
+            id: linkId,
+            group: 1,
+          });
+          links.push({
+            source: nodeId,
+            target: linkId,
+            value: 1,
+          });
+        });
+      });
+      setData({ nodes, links });
     });
   }, []);
 
@@ -98,15 +125,16 @@ const DepChart = () => {
 
       node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
     }
-  }, []);
+  }, [data]);
 
   useEffect(() => {
+    if (Object.keys(data).length === 0) return;
     renderChart();
     return () => {
       // 当重新运行该单元时，停止之前的模拟。(这其实并不重要，因为目标阿尔法值为零，模拟会自然停止，但这是一个好的做法）
       simulation.current?.stop();
     };
-  }, [renderChart]);
+  }, [renderChart, data]);
 
   return (
     <div className={styles.container}>
